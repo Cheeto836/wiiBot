@@ -258,10 +258,10 @@ void loop(void)
   // Accelerometer
   if (packetbuffer[1] == 'A') 
   {
-    float x, y, z;
-    x = parsefloat(packetbuffer+2);
-    y = parsefloat(packetbuffer+6);
-    z = parsefloat(packetbuffer+10);
+    float x, y;
+    x = parsefloat(packetbuffer+2); //long edge of phone
+    y = parsefloat(packetbuffer+6); //short edge of phone
+    //z = parsefloat(packetbuffer+10);
 
     if (x > 2)
     {
@@ -278,14 +278,20 @@ void loop(void)
   }
 }
 
-void blinkLed(int n, int x)
+void diffSteer(double steer, double throttle, double& left, double& right)
 {
-  digitalWrite(13, LOW);
-  for (int i = 0; i < n; i++)
+  //input coercion
+  if (steer < -1)
+    steer = -1;
+  if (steer > 1)
+    steer = 1;
+  if (throttle < -1)
+    throttle = -1;
+  if (throttle > 1)
+    throttle = 1;
+
+  //check for point spin
+  if (throttle == 0 && throttle != 0)
   {
-    digitalWrite(13, HIGH);
-    delay(x);
-    digitalWrite(13, LOW);
-    delay(x);
   }
 }
