@@ -24,6 +24,7 @@
 #include "Adafruit_BluefruitLE_UART.h"
 
 #include "BluefruitConfig.h"
+#include "Motor.h"
 
 /*=========================================================================
     APPLICATION SETTINGS
@@ -104,7 +105,7 @@ int bOne = 5;
 int bTwo = 6;
 int bPwm = 9;
 
-class Motor
+/*class Motor
 {
   private:
   int m_pinOne;
@@ -153,7 +154,7 @@ class Motor
   {
     this->setMotor(0);
   }
-};
+};*/
 
 Motor motorA(aOne, aTwo, aPwm);
 Motor motorB(bOne, bTwo, bPwm);
