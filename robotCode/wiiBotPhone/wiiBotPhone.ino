@@ -15,6 +15,7 @@
 #include <string.h>
 #include <Arduino.h>
 #include <SPI.h>
+#include <Servo.h>
 #if not defined (_VARIANT_ARDUINO_DUE_X_) && not defined (_VARIANT_ARDUINO_ZERO_)
   #include <SoftwareSerial.h>
 #endif
@@ -24,7 +25,7 @@
 #include "Adafruit_BluefruitLE_UART.h"
 
 #include "BluefruitConfig.h"
-#include "Motor.h"
+//#include "Motor.h"
 
 /*=========================================================================
     APPLICATION SETTINGS
@@ -96,28 +97,25 @@ enum class Buttons
 };
 
 //motor a pins
-int aOne = 2;
-int aTwo = 3;
-int aPwm = 10;
-
+/*int aOne = 5;
+int aTwo = 9;
 //motor b pins
-int bOne = 5;
-int bTwo = 6;
-int bPwm = 9;
+int bOne = 10;
+int bTwo = 22;
 
-/*class Motor
+class Motor
 {
   private:
   int m_pinOne;
   int m_pinTwo;
-  int m_pinPwm;
   const double maxVal = 255;
   public:
-  Motor(int pinOne, int pinTwo, int pinThree)
+  Motor(int pinOne, int pinTwo)
   {
     m_pinOne = pinOne;
     m_pinTwo = pinTwo;
-    m_pinPwm = pinThree;
+    pinMode(m_pinOne, OUTPUT);
+    pinMode(m_pinTwo, OUTPUT);
   }
   void setMotor(double val)
   {
@@ -133,21 +131,18 @@ int bPwm = 9;
     {
       digitalWrite(m_pinOne, LOW);
       digitalWrite(m_pinTwo, LOW);
-      analogWrite(m_pinPwm, 0);
     }
     else if (val > 0)
     {
       //forward
       digitalWrite(m_pinTwo, LOW);
       digitalWrite(m_pinOne, HIGH);
-      analogWrite(m_pinPwm, maxVal * val);
     }
     else
     {
       //backward
       digitalWrite(m_pinOne, LOW);
       digitalWrite(m_pinTwo, HIGH);
-      analogWrite(m_pinPwm, maxVal * (-1 *val));
     }
   }
   void stopMotor()
@@ -156,9 +151,11 @@ int bPwm = 9;
   }
 };*/
 
-Motor motorA(aOne, aTwo, aPwm);
-Motor motorB(bOne, bTwo, bPwm);
-
+Servo leftWheel;
+Servo rightWheel;
+const int forward = 180;
+const int backward = 0;
+const int neutral = 90;
 void setup(void)
 {
   pinMode(13, OUTPUT);
@@ -178,6 +175,8 @@ void setup(void)
   }
   digitalWrite(13, HIGH);
   ble.setMode(BLUEFRUIT_MODE_DATA);
+  leftWheel.attach(10);
+  rightWheel.attach(11);
 }
 
 /**************************************************************************/
@@ -187,10 +186,15 @@ void setup(void)
 /**************************************************************************/
 void loop(void)
 {
+  float throttle = 0, steer = 0;
   /* Wait for new data to arrive */
   uint8_t len = readPacket(&ble, BLE_READPACKET_TIMEOUT);
+  /*if (!ble.isConnected())
+  {
+    rightWheel.write(neutral);
+    leftWheel.write(neutral);
+  }*/
   if (len == 0) return;
-
   // Buttons
   if (packetbuffer[1] == 'B') 
   {
@@ -202,13 +206,15 @@ void loop(void)
       case Buttons::Down:
       if (pressed)
       {
-        motorA.setMotor(-1);
-        motorB.setMotor(-1);
-      }
+        //throttle = -1;
+        rightWheel.write(180);
+        leftWheel.write(180);
+      }     
       else
       {
-        motorA.stopMotor();
-        motorB.stopMotor();
+        //throttle = 0;
+        rightWheel.write(90);
+        leftWheel.write(90);
       }
       //reverse
       break;
@@ -216,13 +222,15 @@ void loop(void)
       //forward
       if(pressed)
       {
-        motorA.setMotor(1);
-        motorB.setMotor(1);
+        //throttle = 1;
+        rightWheel.write(0);
+        leftWheel.write(0);
       }
       else
       {
-        motorA.stopMotor();
-        motorB.stopMotor();
+        //throttle = 0;
+        rightWheel.write(90);
+        leftWheel.write(90);
       }
       break;
       case Buttons::One:
@@ -230,13 +238,15 @@ void loop(void)
       //go left
       if (pressed)
       {
-        motorA.setMotor(1);
-        motorB.setMotor(-1);
+        //steer = -1;
+        rightWheel.write(0);
+       leftWheel.write(180);
       }
       else
       {
-        motorA.stopMotor();
-        motorB.stopMotor();
+        //steer = 0;
+        leftWheel.write(90);
+        rightWheel.write(90);
       }
       break;
       case Buttons::Two:
@@ -244,16 +254,72 @@ void loop(void)
       //go right
       if (pressed)
       {
-        motorA.setMotor(-1);
-        motorB.setMotor(1);
+        //steer = 1;
+        leftWheel.write(0);
+        rightWheel.write(180);
       }
       else
       {
-        motorA.stopMotor();
-        motorB.stopMotor();
+        //steer = 0;
+        leftWheel.write(90);
+        rightWheel.write(90);
       }
       break;
     }
+    /*if (throttle == 1 && steer == 1)
+    {
+      //forward and right
+      leftWheel.write(forward);
+      rightWheel.write(forward - (neutral / 2));
+    }
+    else if (throttle == 1 && steer == -1)
+    {
+      //forward and left
+      leftWheel.write(forward - (neutral / 2));
+      rightWheel.write(forward);
+    }
+    else if (throttle == 1 && steer == 0)
+    {
+      //forward and straight
+      leftWheel.write(forward);
+      rightWheel.write(forward);
+    }
+    else if (throttle == -1 && steer == 1)
+    {
+      //backward and right
+      leftWheel.write(backward);
+      rightWheel.write(backward + (neutral / 2));
+    }
+    else if (throttle == -1 && steer == -1)
+    {
+      //backward and left
+      leftWheel.write(backward + (neutral / 2));
+      rightWheel.write(backward);
+    }
+    else if (throttle == -1 && steer == 0)
+    {
+      //backward and straight
+      leftWheel.write(backward);
+      rightWheel.write(backward);
+    }
+    else if (throttle == 0 && steer == 1)
+    {
+      //right only
+      leftWheel.write(forward);
+      rightWheel.write(backward);
+    }
+    else if (throttle == 0 && steer == -1)
+    {
+      //left only
+      leftWheel.write(backward);
+      rightWheel.write(forward);
+    }
+    else
+    {
+      //stop
+      leftWheel.write(neutral);
+      rightWheel.write(neutral);
+    }*/
   }
 
   // Accelerometer
