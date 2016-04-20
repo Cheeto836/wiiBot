@@ -89,27 +89,28 @@ extern uint8_t packetbuffer[];
 /**************************************************************************/
 enum class Buttons
 {
-  One = 1,
-  Two = 2,
+  One =   1,
+  Two =   2,
   Three = 3,
-  Four = 4,
-  Up = 5,
-  Down = 6,
-  Left = 7,
+  Four =  4,
+  Up =    5,
+  Down =  6,
+  Left =  7,
   Right = 8
 };
-
-//motor a pins
 
 Servo leftWheel;
 Servo rightWheel;
 const int forward = 0;
 const int backward = 0;
 const int neutral = 180;
+const int leftWheelPin = 10;
+const int rightWheelPin = 11;
+const int waitPeriodMs = 500;
+
 void setup(void)
 {
-  pinMode(13, OUTPUT);
-  delay(500);
+  delay(waitPeriodMs);
 
   Serial.begin(115200);
   /* Initialise the module */
@@ -121,12 +122,11 @@ void setup(void)
   ble.echo(false);
   while (! ble.isConnected()) 
   {
-      delay(500);
+      delay(waitPeriodMs);
   }
-  digitalWrite(13, HIGH);
   ble.setMode(BLUEFRUIT_MODE_DATA);
-  leftWheel.attach(10);
-  rightWheel.attach(11);
+  leftWheel.attach(leftWheelPin);
+  rightWheel.attach(rightWheelPin);
 }
 
 /**************************************************************************/
@@ -208,16 +208,7 @@ void loop(void)
     float x, y;
     x = parsefloat(packetbuffer+2); //long edge of phone
     y = parsefloat(packetbuffer+6); //short edge of phone
-    //z = parsefloat(packetbuffer+10);
-
-    if (x > 2)
-    {
-      digitalWrite(13, HIGH);
-    }
-    else
-    {
-      digitalWrite(13, LOW);
-    }
+    z = parsefloat(packetbuffer+10);
     //Serial.print("Accel\t");
     //Serial.print(x); Serial.print('\t');
     //Serial.print(y); Serial.print('\t');
