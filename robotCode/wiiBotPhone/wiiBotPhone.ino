@@ -12,6 +12,9 @@
  any redistribution
 *********************************************************************/
 
+/* File has been modified by cheeto836 for use with a 'wiiBot'.
+ */
+
 #include <string.h>
 #include <Arduino.h>
 #include <SPI.h>
@@ -25,7 +28,6 @@
 #include "Adafruit_BluefruitLE_UART.h"
 
 #include "BluefruitConfig.h"
-//#include "Motor.h"
 
 /*=========================================================================
     APPLICATION SETTINGS
@@ -64,7 +66,8 @@
 /*=========================================================================*/
 Adafruit_BluefruitLE_SPI ble(BLUEFRUIT_SPI_CS, BLUEFRUIT_SPI_IRQ, BLUEFRUIT_SPI_RST);
 // A small helper
-void error(const __FlashStringHelper*err) {
+void error(const __FlashStringHelper*err) 
+{
   Serial.println(err);
   while (1);
 }
@@ -86,97 +89,44 @@ extern uint8_t packetbuffer[];
 /**************************************************************************/
 enum class Buttons
 {
-  One = 1,
-  Two = 2,
+  One =   1,
+  Two =   2,
   Three = 3,
-  Four = 4,
-  Up = 5,
-  Down = 6,
-  Left = 7,
+  Four =  4,
+  Up =    5,
+  Down =  6,
+  Left =  7,
   Right = 8
 };
 
-//motor a pins
-/*int aOne = 5;
-int aTwo = 9;
-//motor b pins
-int bOne = 10;
-int bTwo = 22;
-
-class Motor
-{
-  private:
-  int m_pinOne;
-  int m_pinTwo;
-  const double maxVal = 255;
-  public:
-  Motor(int pinOne, int pinTwo)
-  {
-    m_pinOne = pinOne;
-    m_pinTwo = pinTwo;
-    pinMode(m_pinOne, OUTPUT);
-    pinMode(m_pinTwo, OUTPUT);
-  }
-  void setMotor(double val)
-  {
-    int motorVal = 0;
-    //ensure value is in range
-    if (val > 1)
-      val = 1;
-    if(val < -1)
-      val = -1;
-
-    //write to pins correct direction
-    if (val == 0)
-    {
-      digitalWrite(m_pinOne, LOW);
-      digitalWrite(m_pinTwo, LOW);
-    }
-    else if (val > 0)
-    {
-      //forward
-      digitalWrite(m_pinTwo, LOW);
-      digitalWrite(m_pinOne, HIGH);
-    }
-    else
-    {
-      //backward
-      digitalWrite(m_pinOne, LOW);
-      digitalWrite(m_pinTwo, HIGH);
-    }
-  }
-  void stopMotor()
-  {
-    this->setMotor(0);
-  }
-};*/
-
 Servo leftWheel;
 Servo rightWheel;
-const int forward = 180;
+const int forward = 0;
 const int backward = 0;
-const int neutral = 90;
+const int neutral = 180;
+const int leftWheelPin = 10;
+const int rightWheelPin = 11;
+const int waitPeriodMs = 500;
+
 void setup(void)
 {
-  pinMode(13, OUTPUT);
-  delay(500);
+  delay(waitPeriodMs);
 
   Serial.begin(115200);
   /* Initialise the module */
   if ( !ble.begin(false) )
   {
-    error(F("Couldn't find Bluefruit, make sure it's in CoMmanD mode & check wiring?"));
+    error(F("Couldn't find Bluefruit, make sure it's in Command mode & check wiring?"));
   }
   
   ble.echo(false);
   while (! ble.isConnected()) 
   {
-      delay(500);
+      delay(waitPeriodMs);
   }
-  digitalWrite(13, HIGH);
   ble.setMode(BLUEFRUIT_MODE_DATA);
-  leftWheel.attach(10);
-  rightWheel.attach(11);
+  leftWheel.attach(leftWheelPin);
+  rightWheel.attach(rightWheelPin);
 }
 
 /**************************************************************************/
@@ -186,14 +136,10 @@ void setup(void)
 /**************************************************************************/
 void loop(void)
 {
-  float throttle = 0, steer = 0;
+  float throttle = 0;
+  float steer = 0;
   /* Wait for new data to arrive */
   uint8_t len = readPacket(&ble, BLE_READPACKET_TIMEOUT);
-  /*if (!ble.isConnected())
-  {
-    rightWheel.write(neutral);
-    leftWheel.write(neutral);
-  }*/
   if (len == 0) return;
   // Buttons
   if (packetbuffer[1] == 'B') 
@@ -201,36 +147,29 @@ void loop(void)
     uint8_t buttnum = packetbuffer[2] - '0';
     boolean pressed = packetbuffer[3] - '0';
     Buttons buttonPressed = static_cast<Buttons>(buttnum);
+    //set throttle and steer values based on button pressed
     switch (buttonPressed)
     {
+      //reverse
       case Buttons::Down:
       if (pressed)
       {
-        //throttle = -1;
-        rightWheel.write(180);
-        leftWheel.write(180);
+        throttle = -1;
       }     
       else
       {
-        //throttle = 0;
-        rightWheel.write(90);
-        leftWheel.write(90);
+        throttle = 0;
       }
-      //reverse
       break;
       case Buttons::Up:
       //forward
       if(pressed)
       {
-        //throttle = 1;
-        rightWheel.write(0);
-        leftWheel.write(0);
+        throttle = 1;
       }
       else
       {
-        //throttle = 0;
-        rightWheel.write(90);
-        leftWheel.write(90);
+        throttle = 0;
       }
       break;
       case Buttons::One:
@@ -238,15 +177,11 @@ void loop(void)
       //go left
       if (pressed)
       {
-        //steer = -1;
-        rightWheel.write(0);
-       leftWheel.write(180);
+        steer = -1;
       }
       else
       {
-        //steer = 0;
-        leftWheel.write(90);
-        rightWheel.write(90);
+        steer = 0;
       }
       break;
       case Buttons::Two:
@@ -254,72 +189,17 @@ void loop(void)
       //go right
       if (pressed)
       {
-        //steer = 1;
-        leftWheel.write(0);
-        rightWheel.write(180);
+        steer = 1;
       }
       else
       {
-        //steer = 0;
-        leftWheel.write(90);
-        rightWheel.write(90);
+        steer = 0;
       }
       break;
     }
-    /*if (throttle == 1 && steer == 1)
-    {
-      //forward and right
-      leftWheel.write(forward);
-      rightWheel.write(forward - (neutral / 2));
-    }
-    else if (throttle == 1 && steer == -1)
-    {
-      //forward and left
-      leftWheel.write(forward - (neutral / 2));
-      rightWheel.write(forward);
-    }
-    else if (throttle == 1 && steer == 0)
-    {
-      //forward and straight
-      leftWheel.write(forward);
-      rightWheel.write(forward);
-    }
-    else if (throttle == -1 && steer == 1)
-    {
-      //backward and right
-      leftWheel.write(backward);
-      rightWheel.write(backward + (neutral / 2));
-    }
-    else if (throttle == -1 && steer == -1)
-    {
-      //backward and left
-      leftWheel.write(backward + (neutral / 2));
-      rightWheel.write(backward);
-    }
-    else if (throttle == -1 && steer == 0)
-    {
-      //backward and straight
-      leftWheel.write(backward);
-      rightWheel.write(backward);
-    }
-    else if (throttle == 0 && steer == 1)
-    {
-      //right only
-      leftWheel.write(forward);
-      rightWheel.write(backward);
-    }
-    else if (throttle == 0 && steer == -1)
-    {
-      //left only
-      leftWheel.write(backward);
-      rightWheel.write(forward);
-    }
-    else
-    {
-      //stop
-      leftWheel.write(neutral);
-      rightWheel.write(neutral);
-    }*/
+    //generate motor values
+    float left, right;
+    diffSteer(throttle, steer, left, right);
   }
 
   // Accelerometer
@@ -328,16 +208,7 @@ void loop(void)
     float x, y;
     x = parsefloat(packetbuffer+2); //long edge of phone
     y = parsefloat(packetbuffer+6); //short edge of phone
-    //z = parsefloat(packetbuffer+10);
-
-    if (x > 2)
-    {
-      digitalWrite(13, HIGH);
-    }
-    else
-    {
-      digitalWrite(13, LOW);
-    }
+    z = parsefloat(packetbuffer+10);
     //Serial.print("Accel\t");
     //Serial.print(x); Serial.print('\t');
     //Serial.print(y); Serial.print('\t');
@@ -345,20 +216,69 @@ void loop(void)
   }
 }
 
-void diffSteer(double steer, double throttle, double& left, double& right)
+void diffSteer(float throttle, float steer, float& left, float& right)
 {
-  //input coercion
-  if (steer < -1)
-    steer = -1;
-  if (steer > 1)
-    steer = 1;
-  if (throttle < -1)
-    throttle = -1;
-  if (throttle > 1)
-    throttle = 1;
+  /* Function will be used to take in a throttle and steer value for driving
+   * a robot. Input values (throttle and steer) will be bounded to the range
+   * [1, -1].
+   *
+   * OPERATOIN
+   * The equation will calculate a difference that will be applied to the left
+   * and right drive motors. The difference will be larger for steer values
+   * closer to 1 and-1. The equation used to calculate the difference is:
+   *   diff = steer * turnSense (constant)
+   *
+   * INPUTS
+   * throttle-Value equating to the forward movement of the robot. 1 is full
+   *          speed forward. -1 is full speed backward.
+   * steer-Value equating to the turning rate of the robot. 1 is full turn in
+   *       one direction, -1 is full turn in the other direction. Direction
+   *       is not garunteed as direction is dependent on things such as
+   *       where the front of the robot is defined to be. 
+   *
+   * OUTPUTS
+   * left-motor value bounded to the range [-1, 1] for robot's left motors
+   * right-motor value bounded to the range [-1,1] for robot's right motors
+   */
+  //declare constants.
+  const float TURN_SENSE = 1.0; //need to update value (see VI)
+  const float MIN = -1.0;
+  const float MAX = 1.0;
 
-  //check for point spin
-  if (throttle == 0 && throttle != 0)
-  {
-  }
+  //input bounding
+  throttle = coerceInput(throttle, MIN, MAX);
+  steer = coerceInput(steer, MIN, MAX);
+
+  //calculate difference
+  double diff = steer * TURN_SENSE;
+
+  //apply difference to motor values
+  left = throttle + diff;
+  right = throttle - diff;
+
+  //output bounding
+  left = coerceInput(left, MIN, MAX);
+  right = coerceInput(right, MIN, MAX);
+}
+
+float coerceInput(float in, float low, float high)
+{
+  /* Function takes in a numeric value and will coerce it to a value in the
+   * range [low, high].
+   * 
+   * INPUTS:
+   * in-floating point value to be coerced into range
+   * low-floating point number that represents the inclusive lower bound of
+   *     the coercion range.
+   * high-floating point number that represents the inclusive upper bound of
+   *      the coercion range.
+   * 
+   * OUTPUTS:
+   * floating point number representing the coerced number
+   */
+  if (in < low)
+    return low;
+  if (in > high)
+    return high;
+  return in;
 }
