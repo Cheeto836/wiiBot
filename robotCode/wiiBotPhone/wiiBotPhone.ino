@@ -268,12 +268,13 @@ float coerceInput(float in, float low, float high)
    * 
    * INPUTS:
    * in-floating point value to be coerced into range
-   *
-   * OUTPUTS:
    * low-floating point number that represents the inclusive lower bound of
    *     the coercion range.
    * high-floating point number that represents the inclusive upper bound of
    *      the coercion range.
+   * 
+   * OUTPUTS:
+   * floating point number representing the coerced number
    */
   if (in < low)
     return low;
